@@ -1,0 +1,33 @@
+{
+    "name": "deesoft/yii2-angularjs",
+    "description": "Yii2 widgets for angularjs",
+    "keywords": ["yii2", "widget", "angularjs"],
+    "type": "yii2-extension",
+    "license": "BSD-3-Clause",
+    "support": {
+        "issues": "https://github.com/deesoft/yii2-angularjs/issues",
+        "source": "https://github.com/deesoft/yii2-angularjs"
+    },
+    "authors": [
+        {
+            "name": "Misbahul Munir",
+            "email": "misbahuldmunir@gmail.com"
+        }
+    ],
+    "require": {
+        "yiisoft/yii2": ">=2.0.4",
+        "bower-asset/angular": "~1.6.0",
+        "bower-asset/angular-route": "~1.6.0",
+        "bower-asset/angular-bootstrap": "~2.5.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "dee\\angularjs\\": ""
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.x-dev"
+        }
+    }
+}
