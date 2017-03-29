@@ -19,7 +19,6 @@ class Module extends \yii\base\Widget
 {
     public $name;
     public $tag = 'div';
-    public $ngApp = true;
     public $options = [];
     public $varName;
     public $controllers = [];
@@ -43,10 +42,7 @@ class Module extends \yii\base\Widget
             throw new InvalidConfigException('Property "' . get_called_class() . '::$name" is required.');
         }
         if ($this->varName === null) {
-            $this->varName = Inflector::variablize($this->module);
-        }
-        if ($this->ngApp) {
-            $this->options['ng-app'] = $this->ngApp === true ? $this->name : $this->ngApp;
+            $this->varName = Inflector::variablize($this->name);
         }
         echo Html::beginTag($this->tag, $this->options);
     }

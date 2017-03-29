@@ -3,6 +3,7 @@
 namespace dee\angularjs;
 
 use yii\helpers\Json;
+use yii\web\JsExpression;
 
 /**
  * Description of NgRoute
@@ -14,6 +15,8 @@ class NgRoute extends Module
 {
     public $tag = 'ng-view';
     public $routes = [];
+    public $html5Mode = false;
+    public $baseUrl;
 
     public function init()
     {
@@ -73,9 +76,16 @@ class NgRoute extends Module
         if (isset($otherwise)) {
             $result[] = $otherwise;
         }
+        if ($this->html5Mode) {
+            $result[] = '$locationProvider.html5Mode(true);';
+            if ($this->baseUrl === null) {
+                $this->baseUrl = \Yii::$app->homeUrl;
+            }
+            $view->registerJs("jQuery('head').append('<base href=\"{$this->baseUrl}\">');", \yii\web\View::POS_END);
+        }
         $this->configs[] = [
             'source' => implode("\n", $result),
-            'injection' => ['$routeProvider'],
+            'injection' => ['$routeProvider', '$locationProvider'],
         ];
     }
 }

@@ -27,27 +27,29 @@ Usage
 
 file `index.php`
 ```php
-<?php Module::begin([
-    'name' => 'angularYii',
-    'controllers' => [
-        'MainController' => [
-            'sourceFile' => 'controllers/main-controller.js',
-            'injection' => ['$scope'],
+<div ng-app="angularYii">
+    <?php Module::begin([
+        'name' => 'angularYii', // module name, use for ng-app
+        'controllers' => [
+            'MainController' => [
+                'sourceFile' => 'controllers/main-controller.js',
+                'injection' => ['$scope'],
+            ]
         ]
-    ]
-])?>
-    <div ng-controller="MainController">
-        <ul>
-            <li ng-repeat="todo in todos">{{todo.name}}</li>
-        </ul>
-        <input ng-model="newValue"><button ng-click="addTodo()">Add</button>
-    </div>
-<?php Module::end()?>
+    ])?>
+        <div ng-controller="MainController">
+            <ul>
+                <li ng-repeat="todo in todos">{{todo.name}}</li>
+            </ul>
+            <input ng-model="newValue"><button ng-click="addTodo()">Add</button>
+        </div>
+    <?php Module::end()?>
+</div>
 ```
 
 file `controllers/main-controller.js`
 ```js
-// variable $scope privide from injcetion
+// variable $scope provide from injcetion
 
 $scope.todos = [
     {name: 'Satu'},
@@ -68,27 +70,29 @@ $scope.addTodo = function(){
 
 file `index.php`
 ```php
-<?php NgRoute::widget([
-    'name' => 'ngrouteYii',
-    'routes' => [
-        '/' => [
-            'templateFile' => 'templates/main.php',
-            'controllerFile' => 'controllers/main.js',
-            'injection' => ['$scope'],
-        ],
-        '/view/:id' => [
-            'templateFile' => 'templates/view.php',
-            'controllerFile' => 'controllers/view.js',
-            'injection' => ['$scope', '$routeParams'],
-        ],
-        '/edit/:id' => [
-            'templateFile' => 'templates/edit.php',
-            'controllerFile' => 'controllers/edit.js',
-            'injection' => ['$scope', '$routeParams'],
-        ],
-        'otherwise' => [
-            'templateFile' => 'templates/not-found.php',
-        ],
-    ]
-])?>
+<div ng-app="ngrouteYii">
+    <?= NgRoute::widget([
+        'name' => 'ngrouteYii',
+        'routes' => [
+            '/' => [
+                'templateFile' => 'templates/main.php',
+                'controllerFile' => 'controllers/main.js',
+                'injection' => ['$scope'],
+            ],
+            '/view/:id' => [
+                'templateFile' => 'templates/view.php',
+                'controllerFile' => 'controllers/view.js',
+                'injection' => ['$scope', '$routeParams'],
+            ],
+            '/edit/:id' => [
+                'templateFile' => 'templates/edit.php',
+                'controllerFile' => 'controllers/edit.js',
+                'injection' => ['$scope', '$routeParams'],
+            ],
+            '*' => [ // otherwise
+                'templateFile' => 'templates/not-found.php',
+            ],
+        ]
+    ])?>
+</div>
 ```
