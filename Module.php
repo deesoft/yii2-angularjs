@@ -27,14 +27,17 @@ class Module extends \yii\base\Widget
     public $services = [];
     public $filters = [];
     public $directives = [];
+    public $values = [];
     public $preJs;
     public $preJsFile;
     public $postJs;
     public $postJsFile;
     public $depends = [];
-    public $configs = [];
+    public $run;
+    public $config;
     public static $moduleAssets = [];
     protected static $registeredModules = [];
+    protected $js = [];
 
     public function init()
     {
@@ -49,7 +52,7 @@ class Module extends \yii\base\Widget
 
     public function run()
     {
-        $view = $this->getView();        
+        $view = $this->getView();
         $js = $this->renderJsAll();
 
         $sName = Json::htmlEncode($this->name);
@@ -79,6 +82,7 @@ class Module extends \yii\base\Widget
             }
         }
 
+
         $js = <<<JS
 var {$this->varName} = (function(angular){
     var {$this->varName} = angular.module($sName, $depends);
@@ -92,25 +96,52 @@ JS;
 
     protected function renderJsAll()
     {
-        $view = $this->getView();
+        $js = [];
+        $js[] = $this->renderPreJs();
+        $js[] = $this->renderServices();
+        $js[] = $this->renderConfigs();
+        $js[] = $this->renderComponents();
+        $js[] = $this->renderPostJs();
+        return implode("\n", $js);
+    }
+
+    protected function injectFunctionArgs($func)
+    {
+        if (preg_match('/^\s*function[^(]*\(\s*([^)]*)\)/m', $func, $matches)) {
+            if (!empty($matches[1])) {
+                $args = preg_split('/\s*,\s*/', $matches[1], -1, PREG_SPLIT_NO_EMPTY);
+                $args[] = new JsExpression($func);
+                return Json::htmlEncode($args);
+            }
+        }
+        return $func;
+    }
+
+    protected function appendScript($func, $added)
+    {
+        return preg_replace('/(function[^{]*\{)/m', "$1\n$added\n", $func, 1);
+    }
+
+    protected function renderPreJs()
+    {
         $js = [];
         if ($this->preJs) {
             $js[] = $this->preJs;
         }
         if ($this->preJsFile) {
-            $js[] = $view->render($this->preJsFile);
+            $js[] = $this->getView()->render($this->preJsFile);
         }
-        //
-        $js[] = $this->renderFunctions();
-        $js[] = $this->renderConfigs();
-        $js[] = $this->renderComponents();
+        return implode("\n", $js);
+    }
 
-        //
+    protected function renderPostJs()
+    {
+        $js = [];
         if ($this->postJs) {
             $js[] = $this->postJs;
         }
         if ($this->postJsFile) {
-            $js[] = $view->render($this->postJsFile);
+            $js[] = $this->getView()->render($this->postJsFile);
         }
         return implode("\n", $js);
     }
@@ -133,25 +164,19 @@ JS;
                 }
                 $view->js = $oldJs;
             }
-            if (isset($config['controller'])) {
-                $script = $config['controller'];
-            } elseif (isset($config['controllerFile'])) {
-                $script = $view->render($config['controllerFile']);
+
+            if (isset($config['controller']) || isset($config['controllerFile'])) {
+                $script = isset($config['controller']) ? $config['controller'] : $view->render($config['controllerFile']);
+                $script = $this->injectFunctionArgs($script);
+                $registeredJs = "function registeredScript(){\n" . implode("\n", $registeredJs) . "\n}";
+                $script = $this->appendScript($script, $registeredJs);
             } else {
-                $script = '';
+                $script = 'function(){}';
             }
-            $script .= "\nfunction registeredScript(){\n" . implode("\n", $registeredJs) . "\n}";
-            if (empty($config['injection'])) {
-                $js = new JsExpression("function(){\n{$script}\n}");
-            } else {
-                $js = (array) $config['injection'];
-                $injectVar = implode(', ', $js);
-                $js[] = new JsExpression("function({$injectVar}){\n{$script}\n}");
-            }
-            foreach (['templateFile', 'controllerFile', 'injection'] as $f) {
+            foreach (['templateFile', 'controllerFile'] as $f) {
                 unset($config[$f]);
             }
-            $config['controller'] = $js;
+            $config['controller'] = new JsExpression($script);
             $config = Json::htmlEncode($config);
             $name = Json::htmlEncode(lcfirst(Inflector::id2camel($name)));
             $result[] = "{$this->varName}.component($name, $config);";
@@ -159,7 +184,7 @@ JS;
         return implode("\n", $result);
     }
 
-    protected function renderFunctions()
+    protected function renderServices()
     {
         $parts = [
             'factories' => 'factory',
@@ -167,31 +192,27 @@ JS;
             'filters' => 'filter',
             'controllers' => 'controller',
             'directives' => 'directive',
+            'values' => 'value',
         ];
-        $result = [];
         $view = $this->getView();
+        $result = [];
         foreach ($parts as $part => $funcName) {
             foreach ($this->$part as $name => $function) {
-                if (is_string($function)) {
-                    $function = ['source' => $function];
-                }
-                if (isset($function['source'])) {
-                    $script = $function['source'];
-                } elseif (isset($function['sourceFile'])) {
-                    $script = $view->render($function['sourceFile']);
+                if ($part === 'values') {
+                    $script = json_encode($function);
                 } else {
-                    $script = '';
-                }
-                if (empty($function['injection'])) {
-                    $js = "function(){\n{$script}\n}";
-                } else {
-                    $inject = (array) $function['injection'];
-                    $injectVar = implode(', ', $inject);
-                    $inject[] = new JsExpression("function({$injectVar}){\n{$script}\n}");
-                    $js = Json::htmlEncode($inject);
+                    if (is_string($function)) {
+                        $function = ['source' => $function];
+                    }
+                    if (isset($function['source']) || isset($function['sourceFile'])) {
+                        $script = isset($function['source']) ? $function['source'] : $view->render($function['sourceFile']);
+                        $script = $this->injectFunctionArgs($script);
+                    } else {
+                        $script = 'function(){}';
+                    }
                 }
                 $name = Json::htmlEncode($name);
-                $result[] = "{$this->varName}.{$funcName}({$name}, $js);";
+                $result[] = "{$this->varName}.{$funcName}({$name}, $script);";
             }
         }
         return implode("\n", $result);
@@ -200,38 +221,22 @@ JS;
     protected function renderConfigs()
     {
         $view = $this->getView();
-        $for = [];
-        $js = [];
-        foreach ($this->configs as $function) {
-            if (is_string($function)) {
-                $function = ['source' => $function];
+        $parts = ['config', 'run'];
+        $result = [];
+        foreach ($parts as $part) {
+            $function = $this->$part;
+            if (empty($function)) {
+                continue;
             }
             if (isset($function['source'])) {
-                $script = $function['source'];
-            } elseif (isset($function['sourceFile'])) {
-                $script = $view->render($function['sourceFile']);
-            } else {
-                $script = '';
+                $function = $function['source'];
+            }elseif (isset ($function['sourceFile'])) {
+                $function = $view->render($function['sourceFile']);
             }
-            if (empty($function['injection'])) {
-                $js[] = "(function(){\n{$script}\n})();";
-            } else {
-                $inject = (array) $function['injection'];
-                $for = array_merge($for, $inject);
-                $injectVar = implode(', ', $inject);
-                $js[] = "(function({$injectVar}){\n{$script}\n})($injectVar);";
-            }
+            $script = $this->injectFunctionArgs($function);
+            $result[] = "{$this->varName}.{$part}($script);";
         }
-        $js = implode("\n", $js);
-        if (empty($for)) {
-            $script = "function(){\n{$js}\n}";
-        } else {
-            $inject = array_unique($for);
-            $injectVar = implode(', ', $inject);
-            $inject[] = new JsExpression("function({$injectVar}){\n{$js}\n}");
-            $script = Json::htmlEncode($inject);
-        }
-        return "{$this->varName}.config($script);";
+        return implode("\n", $result);
     }
 }
 

@@ -33,7 +33,6 @@ file `index.php`
         'controllers' => [
             'MainController' => [
                 'sourceFile' => 'controllers/main-controller.js',
-                'injection' => ['$scope'],
             ]
         ]
     ])?>
@@ -49,19 +48,19 @@ file `index.php`
 
 file `controllers/main-controller.js`
 ```js
-// variable $scope provide from injcetion
+function($scope){
+    $scope.todos = [
+        {name: 'Satu'},
+        {name: 'Dua'},
+        {name: 'Tiga'},
+    ];
 
-$scope.todos = [
-    {name: 'Satu'},
-    {name: 'Dua'},
-    {name: 'Tiga'},
-];
-
-$scope.addTodo = function(){
-    $scope.todos.push({
-        name:$scope.newValue,
-    });
-    $scope.newValue = '';
+    $scope.addTodo = function(){
+        $scope.todos.push({
+            name:$scope.newValue,
+        });
+        $scope.newValue = '';
+    }
 }
 ```
 
@@ -77,17 +76,14 @@ file `index.php`
             '/' => [
                 'templateFile' => 'templates/main.php',
                 'controllerFile' => 'controllers/main.js',
-                'injection' => ['$scope'],
             ],
             '/view/:id' => [
                 'templateFile' => 'templates/view.php',
                 'controllerFile' => 'controllers/view.js',
-                'injection' => ['$scope', '$routeParams'],
             ],
             '/edit/:id' => [
                 'templateFile' => 'templates/edit.php',
                 'controllerFile' => 'controllers/edit.js',
-                'injection' => ['$scope', '$routeParams'],
             ],
             '*' => [ // otherwise
                 'templateFile' => 'templates/not-found.php',

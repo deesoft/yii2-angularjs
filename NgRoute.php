@@ -2,6 +2,8 @@
 
 namespace dee\angularjs;
 
+use Yii;
+use yii\web\View;
 use yii\helpers\Json;
 use yii\web\JsExpression;
 
@@ -23,9 +25,13 @@ class NgRoute extends Module
         if ($this->tag !== 'ng-view') {
             $this->options['ng-view'] = true;
         }
-        $this->renderRoutes();
         $this->depends[] = 'ngRoute';
         parent::init();
+    }
+
+    protected function renderConfigs()
+    {
+        return $this->renderRoutes() . "\n" . parent::renderConfigs();
     }
 
     protected function renderRoutes()
@@ -46,25 +52,25 @@ class NgRoute extends Module
                 }
                 $view->js = $oldJs;
             }
-            if (isset($config['controller'])) {
-                $script = $config['controller'];
-            } elseif (isset($config['controllerFile'])) {
-                $script = $view->render($config['controllerFile']);
+
+            if (isset($config['controller']) || isset($config['controllerFile'])) {
+                $script = isset($config['controller']) ? $config['controller'] : $view->render($config['controllerFile']);
+                $script = $this->injectFunctionArgs($script);
+                $registeredJs = "function registeredScript(){\n" . implode("\n", $registeredJs) . "\n}";
+                $script = $this->appendScript($script, $registeredJs);
             } else {
-                $script = '';
+                $script = 'function(){}';
             }
-            $script .= "\nfunction registeredScript(){\n" . implode("\n", $registeredJs) . "\n}";
-            if (empty($config['injection'])) {
-                $js = new JsExpression("function(){\n{$script}\n}");
-            } else {
-                $js = (array) $config['injection'];
-                $injectVar = implode(', ', $js);
-                $js[] = new JsExpression("function({$injectVar}){\n{$script}\n}");
-            }
-            foreach (['templateFile', 'controllerFile', 'injection'] as $f) {
+
+            foreach (['templateFile', 'controllerFile'] as $f) {
                 unset($config[$f]);
             }
-            $config['controller'] = $js;
+            $config['controller'] = new JsExpression($script);
+            if (!empty($config['resolve'])) {
+                foreach ($config['resolve'] as $key => $value) {
+                    $config['resolve'][$key] = new JsExpression($value);
+                }
+            }
             $config = Json::htmlEncode($config);
             if ($name === 'otherwise' || $name === '*') {
                 $otherwise = "\$routeProvider.otherwise($config);";
@@ -76,16 +82,21 @@ class NgRoute extends Module
         if (isset($otherwise)) {
             $result[] = $otherwise;
         }
-        if ($this->html5Mode) {
-            $result[] = '$locationProvider.html5Mode(true);';
-            if ($this->baseUrl === null) {
-                $this->baseUrl = \Yii::$app->homeUrl;
+        $result[] = '$locationProvider.html5Mode(' . json_encode($this->html5Mode) . ');';
+        if ($this->html5Mode === true || !isset($this->html5Mode['enabled']) || $this->html5Mode['enabled'] != false) {
+            $urlManager = Yii::$app->getUrlManager();
+            $baseUrl = $urlManager->showScriptName ? $urlManager->getScriptUrl() : $urlManager->getBaseUrl() . '/';
+            if ($this->baseUrl !== false) {
+                if (strncmp($this->baseUrl, '/', 1) === 0) {
+                    $baseUrl = $this->baseUrl;
+                } else {
+                    $baseUrl = rtrim($baseUrl, '/') . '/' . $this->baseUrl;
+                }
+                $view->registerJs("jQuery('head').append('<base href=\"{$baseUrl}\">');", View::POS_END);
             }
-            $view->registerJs("jQuery('head').append('<base href=\"{$this->baseUrl}\">');", \yii\web\View::POS_END);
         }
-        $this->configs[] = [
-            'source' => implode("\n", $result),
-            'injection' => ['$routeProvider', '$locationProvider'],
-        ];
+
+        $script = implode("\n", $result);
+        return "{$this->varName}.config(['\$routeProvider','\$locationProvider',function(\$routeProvider,\$locationProvider){\n$script\n}]);";
     }
 }
