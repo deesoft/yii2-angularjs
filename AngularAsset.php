@@ -12,7 +12,7 @@ class AngularAsset extends \yii\web\AssetBundle
 {
     public $sourcePath = '@bower/angular';
     public $js = [
-        'angular.min.js',
+        'angular.js',
     ];
     public $depends = [
         'yii\web\JqueryAsset'

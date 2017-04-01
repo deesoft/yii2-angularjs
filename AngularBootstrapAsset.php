@@ -12,7 +12,7 @@ class AngularBootstrapAsset extends \yii\web\AssetBundle
 {
     public $sourcePath = '@bower/angular-bootstrap';
     public $js = [
-        'ui-bootstrap.min.js',
+        'ui-bootstrap-tpls.min.js',
     ];
     public $depends = [
         'dee\angularjs\AngularAsset'

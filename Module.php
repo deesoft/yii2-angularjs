@@ -35,9 +35,10 @@ class Module extends \yii\base\Widget
     public $depends = [];
     public $run;
     public $config;
+    public $templates = [];
+    public $templateFiles = [];
     public static $moduleAssets = [];
     protected static $registeredModules = [];
-    protected $js = [];
 
     public function init()
     {
@@ -99,8 +100,9 @@ JS;
         $js = [];
         $js[] = $this->renderPreJs();
         $js[] = $this->renderServices();
-        $js[] = $this->renderConfigs();
         $js[] = $this->renderComponents();
+        $js[] = $this->renderConfigs();
+        $js[] = $this->renderTemplates();
         $js[] = $this->renderPostJs();
         return implode("\n", $js);
     }
@@ -146,6 +148,20 @@ JS;
         return implode("\n", $js);
     }
 
+    protected function renderTemplate($file)
+    {
+        $registeredJs = [];
+        $view = $this->getView();
+        $oldJs = $view->js;
+        $view->js = [];
+        $template = $view->render($file);
+        foreach ($view->js as $pieces) {
+            $registeredJs[] = implode("\n", $pieces);
+        }
+        $view->js = $oldJs;
+        return [$template, implode("\n", $registeredJs)];
+    }
+
     protected function renderComponents()
     {
         $view = $this->getView();
@@ -154,21 +170,15 @@ JS;
             if (is_string($config)) {
                 $config = ['template' => $config];
             }
-            $registeredJs = [];
+            $registeredJs = '';
             if (empty($config['template']) && isset($config['templateFile'])) {
-                $oldJs = $view->js;
-                $view->js = [];
-                $config['template'] = $view->render($config['templateFile']);
-                foreach ($view->js as $pieces) {
-                    $registeredJs[] = implode("\n", $pieces);
-                }
-                $view->js = $oldJs;
+                list($config['template'], $registeredJs) = $this->renderTemplate($config['templateFile']);
             }
 
             if (isset($config['controller']) || isset($config['controllerFile'])) {
                 $script = isset($config['controller']) ? $config['controller'] : $view->render($config['controllerFile']);
                 $script = $this->injectFunctionArgs($script);
-                $registeredJs = "function registeredScript(){\n" . implode("\n", $registeredJs) . "\n}";
+                $registeredJs = "function registeredScript(){\n$registeredJs\n}";
                 $script = $this->appendScript($script, $registeredJs);
             } else {
                 $script = 'function(){}';
@@ -230,13 +240,42 @@ JS;
             }
             if (isset($function['source'])) {
                 $function = $function['source'];
-            }elseif (isset ($function['sourceFile'])) {
+            } elseif (isset($function['sourceFile'])) {
                 $function = $view->render($function['sourceFile']);
             }
             $script = $this->injectFunctionArgs($function);
             $result[] = "{$this->varName}.{$part}($script);";
         }
         return implode("\n", $result);
+    }
+
+    protected function renderTemplates()
+    {
+        $view = $this->getView();
+        $result = [];
+        foreach ($this->templates as $name => $value) {
+            $name = json_encode($name);
+            $value = Json::htmlEncode($value);
+            $result[] = "\$templateCache.put($name,$value)";
+        }
+        foreach ($this->templateFiles as $name => $value) {
+            $name = json_encode($name);
+            $value = Json::htmlEncode($view->render($value));
+            $result[] = "\$templateCache.put($name,$value)";
+        }
+        if (isset($view->blocks['$templateCache'])) {
+            foreach ($view->blocks['$templateCache'] as $name => $value) {
+                $name = json_encode($name);
+                $value = Json::htmlEncode($value);
+                $result[] = "\$templateCache.put($name,$value)";
+            }
+            unset($view->blocks['$templateCache']);
+        }
+        if (!empty($result)) {
+            $result = implode("\n", $result);
+            return "{$this->varName}.run(['\$templateCache', function(\$templateCache){\n$result\n}]);";
+        }
+        return '';
     }
 }
 

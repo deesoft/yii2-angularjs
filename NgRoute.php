@@ -42,21 +42,14 @@ class NgRoute extends Module
             if (is_string($config)) {
                 $config = ['template' => $config];
             }
-            $registeredJs = [];
+            $registeredJs = '';
             if (empty($config['template']) && isset($config['templateFile'])) {
-                $oldJs = $view->js;
-                $view->js = [];
-                $config['template'] = $view->render($config['templateFile']);
-                foreach ($view->js as $pieces) {
-                    $registeredJs[] = implode("\n", $pieces);
-                }
-                $view->js = $oldJs;
+                list($config['template'], $registeredJs) = $this->renderTemplate($config['templateFile']);
             }
-
             if (isset($config['controller']) || isset($config['controllerFile'])) {
                 $script = isset($config['controller']) ? $config['controller'] : $view->render($config['controllerFile']);
                 $script = $this->injectFunctionArgs($script);
-                $registeredJs = "function registeredScript(){\n" . implode("\n", $registeredJs) . "\n}";
+                $registeredJs = "function registeredScript(){\n$registeredJs\n}";
                 $script = $this->appendScript($script, $registeredJs);
             } else {
                 $script = 'function(){}';
@@ -86,13 +79,20 @@ class NgRoute extends Module
         if ($this->html5Mode === true || !isset($this->html5Mode['enabled']) || $this->html5Mode['enabled'] != false) {
             $urlManager = Yii::$app->getUrlManager();
             $baseUrl = $urlManager->showScriptName ? $urlManager->getScriptUrl() : $urlManager->getBaseUrl() . '/';
-            if ($this->baseUrl !== false) {
+            if ($this->baseUrl !== null) {
                 if (strncmp($this->baseUrl, '/', 1) === 0) {
                     $baseUrl = $this->baseUrl;
                 } else {
                     $baseUrl = rtrim($baseUrl, '/') . '/' . $this->baseUrl;
                 }
-                $view->registerJs("jQuery('head').append('<base href=\"{$baseUrl}\">');", View::POS_END);
+                $jsBase = <<<JS
+(function(){
+    var e = document.createElement('base');
+    e.setAttribute('href', '$baseUrl');
+    document.querySelector('head').appendChild(e);
+})();
+JS;
+                $view->registerJs($jsBase, View::POS_HEAD);
             }
         }
 
