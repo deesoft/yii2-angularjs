@@ -10,9 +10,8 @@ namespace dee\angularjs;
  */
 class AngularBootstrapAsset extends \yii\web\AssetBundle
 {
-    public $sourcePath = '@bower/angular-bootstrap';
     public $js = [
-        'ui-bootstrap-tpls.min.js',
+        'https://angular-ui.github.io/bootstrap/ui-bootstrap-tpls-2.5.0.min.js',
     ];
     public $depends = [
         'dee\angularjs\AngularAsset'

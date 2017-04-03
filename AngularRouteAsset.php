@@ -10,9 +10,8 @@ namespace dee\angularjs;
  */
 class AngularRouteAsset extends \yii\web\AssetBundle
 {
-    public $sourcePath = '@bower/angular-route';
     public $js = [
-        'angular-route.min.js',
+        'https://ajax.googleapis.com/ajax/libs/angularjs/1.6.3/angular-route.min.js',
     ];
     public $depends = [
         'dee\angularjs\AngularAsset'

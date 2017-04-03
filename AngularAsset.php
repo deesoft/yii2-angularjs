@@ -10,9 +10,8 @@ namespace dee\angularjs;
  */
 class AngularAsset extends \yii\web\AssetBundle
 {
-    public $sourcePath = '@bower/angular';
     public $js = [
-        'angular.js',
+        'https://ajax.googleapis.com/ajax/libs/angularjs/1.6.3/angular.min.js',
     ];
     public $depends = [
         'yii\web\JqueryAsset'
