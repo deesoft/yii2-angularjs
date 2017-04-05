@@ -2,6 +2,7 @@
 
 namespace dee\angularjs;
 
+use Yii;
 use yii\helpers\Json;
 use yii\web\JsExpression;
 use yii\web\View;
@@ -69,12 +70,12 @@ class Module extends \yii\base\Widget
                     if (class_exists($asset)) {
                         $asset::register($view);
                     } else {
-                        $view->registerJsFile(\Yii::getAlias($asset), [
+                        $view->registerJsFile(Yii::getAlias($asset), [
                             'depends' => ['dee\angularjs\AngularAsset']
                         ]);
                     }
                 } elseif (!isset($am->bundles[$moduleName])) {
-                    $am->bundles = \Yii::createObject(array_merge($asset, [
+                    $am->bundles[$moduleName] = Yii::createObject(array_merge($asset, [
                             'class' => 'yii\web\AssetBundle',
                     ]));
                     $view->registerAssetBundle($moduleName);
