@@ -51,6 +51,15 @@ class NgRoute extends Module
                 $script = $this->injectFunctionArgs($script);
                 $registeredJs = "function registeredScript(){\n$registeredJs\n}";
                 $script = $this->appendScript($script, $registeredJs);
+            } elseif (isset($config['template'])) {
+                list($config['template'], $script) = $this->extractController($config['template']);
+                if (!empty($script)) {
+                    $script = $this->injectFunctionArgs($script);
+                    $registeredJs = "function registeredScript(){\n$registeredJs\n}";
+                    $script = $this->appendScript($script, $registeredJs);
+                } else {
+                    $script = 'function(){}';
+                }
             } else {
                 $script = 'function(){}';
             }

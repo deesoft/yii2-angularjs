@@ -163,6 +163,21 @@ JS;
         return [$template, implode("\n", $registeredJs)];
     }
 
+    protected function extractController($template)
+    {
+        $regex = '|<script[^>]*>(.+)</script\s*>|is';
+        $result = [$template, null];
+        $result[0] = preg_replace_callback($regex, function($matches) use(&$result) {
+            if (isset($matches[1])) {
+                $result[1] = trim($matches[1]);
+            } else {
+                $result[1] = null;
+            }
+            return '';
+        }, $template, 1);
+        return $result;
+    }
+
     protected function renderComponents()
     {
         $view = $this->getView();
@@ -181,6 +196,15 @@ JS;
                 $script = $this->injectFunctionArgs($script);
                 $registeredJs = "function registeredScript(){\n$registeredJs\n}";
                 $script = $this->appendScript($script, $registeredJs);
+            } elseif (isset($config['template'])) {
+                list($config['template'], $script) = $this->extractController($config['template']);
+                if (!empty($script)) {
+                    $script = $this->injectFunctionArgs($script);
+                    $registeredJs = "function registeredScript(){\n$registeredJs\n}";
+                    $script = $this->appendScript($script, $registeredJs);
+                } else {
+                    $script = 'function(){}';
+                }
             } else {
                 $script = 'function(){}';
             }
