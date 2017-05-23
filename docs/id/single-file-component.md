@@ -1,4 +1,4 @@
-Untuk mendefinisikan `component` atau `route`, kita bisa menggabung antara `view` dengan `controller` dalam satu file.
+Untuk mendefinisikan `component` atau `route`, kita bisa menggabungkan antara `view` dengan `controller` dalam satu file.
 ```php
 <div ng-app="angularYii">
     <?php Module::begin([
@@ -6,6 +6,7 @@ Untuk mendefinisikan `component` atau `route`, kita bisa menggabung antara `view
         'components' => [
             'mainView' => [
                 'templateFile' => 'templates/main-view.php',
+                'controllerAs' => '$ctrl', // default
             ]
         ]
     ])?>
