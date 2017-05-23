@@ -9,7 +9,6 @@ use yii\web\View;
 use yii\helpers\Inflector;
 use yii\base\InvalidConfigException;
 use yii\helpers\Html;
-use Sunra\PhpSimple\HtmlDomParser;
 
 /**
  * Description of Angular
@@ -167,16 +166,21 @@ JS;
 
     protected function extractController($template)
     {
-        $dom = HtmlDomParser::str_get_html($template);
-        $controller = '';
-        if (($script = $dom->find('script[type="text/controller"]', 0)) !== null) {
-            $controller = trim($script->innertext);
-            $script->outertext = '';
-        }
-        if (($view = $dom->find('template', 0)) !== null) {
-            return [trim($view->innertext()), $controller];
+        $tpl = null;
+        $script = preg_replace_callback('|<template[^>]*>(.+)</template\s*>|is', function($matches) use(&$tpl) {
+            if (!isset($tpl)) {
+                $tpl = isset($matches[1]) ? trim($matches[1]) : '';
+            }
+            return '';
+        }, $template, 1);
+        if (isset($tpl)) {
+            if (preg_match('|<script[^>]*>(.+)</script\s*>|is', $script, $matches)) {
+                return [$tpl, $matches[1]];
+            } else {
+                return [$tpl, ''];
+            }
         } else {
-            return [trim($dom->innertext), $controller];
+            return [$template, ''];
         }
     }
 

@@ -16,14 +16,15 @@ Untuk mendefinisikan `component` atau `route`, kita bisa menggabungkan antara `v
 ```
 file `templates/main-view.php`
 ```php
-<div>
-    <ul>
-        <li ng-repeat="todo in $ctrl.todos">{{todo.name}}</li>
-    </ul>
-    <input ng-model="$ctrl.newValue"><button ng-click="$ctrl.addTodo()">Add</button>
-</div>
-
-<script type="text/controller">
+<template>
+    <div>
+        <ul>
+            <li ng-repeat="todo in $ctrl.todos">{{todo.name}}</li>
+        </ul>
+        <input ng-model="$ctrl.newValue"><button ng-click="$ctrl.addTodo()">Add</button>
+    </div>
+</template>
+<script>
     function(){
         var $ctrl = this;
         
