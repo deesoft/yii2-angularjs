@@ -9,6 +9,7 @@ use yii\web\View;
 use yii\helpers\Inflector;
 use yii\base\InvalidConfigException;
 use yii\helpers\Html;
+use Sunra\PhpSimple\HtmlDomParser;
 
 /**
  * Description of Angular
@@ -88,6 +89,7 @@ class Module extends \yii\base\Widget
         $js = <<<JS
 var {$this->varName} = (function(angular){
     var {$this->varName} = angular.module($sName, $depends);
+    var _module = {$this->varName};
     $js
     return {$this->varName};
 })(window.angular);
@@ -165,17 +167,17 @@ JS;
 
     protected function extractController($template)
     {
-        $regex = '|<script[^>]*>(.+)</script\s*>|is';
-        $result = [$template, null];
-        $result[0] = preg_replace_callback($regex, function($matches) use(&$result) {
-            if (isset($matches[1])) {
-                $result[1] = trim($matches[1]);
-            } else {
-                $result[1] = null;
-            }
-            return '';
-        }, $template, 1);
-        return $result;
+        $dom = HtmlDomParser::str_get_html($template);
+        $controller = '';
+        if (($script = $dom->find('script[type="text/controller"]', 0)) !== null) {
+            $controller = trim($script->innertext);
+            $script->outertext = '';
+        }
+        if (($view = $dom->find('template', 0)) !== null) {
+            return [trim($view->innertext()), $controller];
+        } else {
+            return [trim($dom->innertext), $controller];
+        }
     }
 
     protected function renderComponents()
